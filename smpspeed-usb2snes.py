@@ -211,10 +211,12 @@ def read_until_three_duplicates(usb2snes: Usb2Snes, offset, size) -> bytes:
     data2 = None
     data3 = usb2snes.read_offset(offset, size)
 
-    while data1 != data2 != data3:
+    while data1 != data2 or data1 != data3:
         data1 = data2
         data2 = data3
         data3 = usb2snes.read_offset(offset, size)
+
+    assert data1 == data2 and data1 == data3, "Bad read"
 
     return data3
 
