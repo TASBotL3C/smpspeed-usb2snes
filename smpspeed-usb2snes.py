@@ -34,7 +34,7 @@ import time
 import sched
 import posixpath
 
-from typing import Optional, Final
+from typing import Optional, Final, TextIO
 
 import websocket  # type: ignore[import]
 
@@ -202,8 +202,21 @@ class Usb2Snes:
 # SPDX-SnippetEnd
 
 
-def iso_time_str() -> str:
-    return datetime.datetime.now().isoformat()
+class Logger:
+    def __init__(self, file: TextIO):
+        self.__file: Final = file
+
+    def _print(self, s: str) -> None:
+        print(s)
+        self.__file.write(s + "\n")
+
+    def log_string(self, message: str) -> None:
+        time = datetime.datetime.now().isoformat()
+        self._print(f'{ time }, "{ message }"')
+
+    def log_data(self, data: list[str]) -> None:
+        time = datetime.datetime.now().isoformat()
+        self._print(f"{ time }, " + ", ".join(data))
 
 
 def read_until_three_duplicates(usb2snes: Usb2Snes, offset, size) -> bytes:
@@ -237,10 +250,13 @@ TILEMAP_ROWS: Final = (
 )
 
 
-def print_csv_headers() -> None:
+def csv_headers(logger: Logger) -> None:
     headers = ['"' + h.decode("ASCII").replace(":", "") + '"' for r, h in TILEMAP_ROWS]
+    logger._print('"Time",' + ", ".join(headers))
 
-    print('"Time",', ", ".join(headers))
+
+class TilemapReadError(Exception):
+    pass
 
 
 def read_tilemap_line(tilemap: bytes, row: int, header: bytes) -> str:
@@ -249,45 +265,65 @@ def read_tilemap_line(tilemap: bytes, row: int, header: bytes) -> str:
     row_end = (row + 1) * 32
 
     if tilemap[h_start:h_end] != header:
-        raise RuntimeError("Cannot read data: tilemap does not match smpspeed")
+        raise TilemapReadError()
 
     data = tilemap[h_end:row_end].strip(b"\x00 ").split(b"\x00", 1)[0]
 
     return data.decode("ASCII")
 
 
-def read_smpspeed(usb2snes: Usb2Snes) -> list[str]:
+def read_smpspeed(usb2snes: Usb2Snes) -> Optional[list[str]]:
     tilemap = read_until_three_duplicates(usb2snes, SMPSPEED_VRAM_OFFSET, SMPSPEED_VRAM_SIZE)
 
-    out = [read_tilemap_line(tilemap, row, name) for row, name in TILEMAP_ROWS]
-
-    return out
-
-
-def smpspeed_usb2snes(ws_address: str, interval: int) -> None:
-    print_csv_headers()
-
     try:
-        with contextlib.closing(websocket.WebSocket()) as ws:
-            ws.connect(ws_address, origin="http://localhost")  # type: ignore
+        out = [read_tilemap_line(tilemap, row, name) for row, name in TILEMAP_ROWS]
+        # Fixes "60, ------, ------, ------, -------, ------, -------, -------, -----" line if read during setup
+        if "---" in out[1]:
+            return None
+        return out
+    except TilemapReadError as e:
+        return None
 
-            usb2snes = Usb2Snes(ws)
 
-            if not usb2snes.find_and_attach_device():
-                raise RuntimeError("Cannot connect to usb2snes")
+def read_usb2snes(usb2snes: Usb2Snes, logger: Logger, interval: int) -> None:
+    csv_headers(logger)
+    logger.log_string(f"Connected to { usb2snes.device_name() }")
 
-            print(f'{ iso_time_str() }, "Connected to { usb2snes.device_name() }"')
+    while True:
+        start_time = time.monotonic()
 
-            while True:
-                start_time = time.monotonic()
+        data = read_smpspeed(usb2snes)
+        if data is None:
+            logger.log_string("Cannot read data: tilemap does not match smpspeed")
 
+            while data is None:
+                if time.monotonic() - start_time > 60:
+                    raise RuntimeError("Timeout")
+                time.sleep(0.25)
                 data = read_smpspeed(usb2snes)
-                print(iso_time_str(), *data, sep=", ")
+            # reset timer
+            start_time = time.monotonic()
 
-                time.sleep(max(start_time - time.monotonic() + interval, 1.0))
+        logger.log_data(data)
+        time.sleep(max(start_time - time.monotonic() + interval, 0.5))
 
-    except Exception as e:
-        print(f'{ iso_time_str() }, "EXCEPTION: { e }"')
+
+def smpspeed_usb2snes(ws_address: str, output_filename: str, interval: int) -> None:
+    with contextlib.closing(websocket.WebSocket()) as ws:
+        ws.connect(ws_address, origin="http://localhost")  # type: ignore
+
+        usb2snes = Usb2Snes(ws)
+
+        if not usb2snes.find_and_attach_device():
+            raise RuntimeError("Cannot connect to usb2snes")
+
+        with open(output_filename, "x") as fp:
+            logger = Logger(fp)
+
+            try:
+                read_usb2snes(usb2snes, logger, interval)
+            except Exception as e:
+                logger.log_string(f"EXCEPTION: { e }")
 
 
 def main():
@@ -302,14 +338,22 @@ def main():
     parser.add_argument(
         "-i",
         "--interval",
-        required=True,
+        required=False,
         type=int,
+        default=5,
         help="interval between reads (seconds)",
+    )
+    parser.add_argument(
+        "-o",
+        "--csv-output",
+        required=True,
+        type=str,
+        help="csv output file",
     )
 
     args = parser.parse_args()
 
-    smpspeed_usb2snes(args.address, args.interval)
+    smpspeed_usb2snes(args.address, args.csv_output, args.interval)
 
 
 if __name__ == "__main__":
