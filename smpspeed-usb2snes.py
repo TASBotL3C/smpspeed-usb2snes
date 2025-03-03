@@ -317,7 +317,8 @@ def smpspeed_usb2snes(ws_address: str, output_filename: str, interval: int) -> N
         if not usb2snes.find_and_attach_device():
             raise RuntimeError("Cannot connect to usb2snes")
 
-        with open(output_filename, "x") as fp:
+        # Using buffering to write to disk more often
+        with open(output_filename, "x", buffering=256) as fp:
             logger = Logger(fp)
 
             try:
