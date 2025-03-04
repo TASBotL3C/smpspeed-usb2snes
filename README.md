@@ -57,6 +57,22 @@ Specify a custom output filename:
 python smpspeed.py --csv-output my-snes-measurements.csv
 ```
 
+## Recording Instructions
+
+1. Start/setup QUsb2Snes
+2. Open a terminal
+3. Power on console
+4. Start the `smpspeed.py` script, confirm the script connected to the device
+5. Open system information menu
+6. Wait for master clock reading
+7. Close menu and start the smpspeed test ROM
+8. Stop recording with `Ctrl+C`
+
+You have 60 seconds from script start to starting the smpspeed test ROM before the script times-out and stops.
+
+You can start the script after smpspeed, but it you won't get a fast first-reading.
+(The script reads every 0.25 seconds for 60 seconds if tilemap does not match the smpspeed test ROM.)
+
 ## Output Format
 
 The tool generates a CSV file with the following columns:
