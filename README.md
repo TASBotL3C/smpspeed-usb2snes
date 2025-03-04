@@ -66,7 +66,8 @@ python smpspeed.py --csv-output my-snes-measurements.csv
 5. Open system information menu
 6. Wait for master clock reading
 7. Close menu and start the smpspeed test ROM
-8. Stop recording with `Ctrl+C`
+8. Wait for the script to collect the smpspeed data
+9. Stop recording with `Ctrl+C`
 
 You have 60 seconds from script start to starting the smpspeed test ROM before the script times-out and stops.
 
