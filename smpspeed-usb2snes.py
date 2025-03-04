@@ -214,9 +214,8 @@ class Logger:
         time = datetime.datetime.now().isoformat()
         self._print(f'{ time }, "{ message }"')
 
-    def log_data(self, data: list[str]) -> None:
-        time = datetime.datetime.now().isoformat()
-        self._print(f"{ time }, " + ", ".join(data))
+    def log_data(self, time: datetime.datetime, data: list[str]) -> None:
+        self._print(f"{ time.isoformat() }, " + ", ".join(data))
 
 
 def read_until_three_duplicates(usb2snes: Usb2Snes, offset, size) -> bytes:
@@ -232,6 +231,10 @@ def read_until_three_duplicates(usb2snes: Usb2Snes, offset, size) -> bytes:
     assert data1 == data2 and data1 == data3, "Bad read"
 
     return data3
+
+
+SYSINFO_MASTER_CLOCK_OFFSET: Final = 0xFF1200 + 400
+SYSINFO_MASTER_CLOCK_SIZE: Final = 32
 
 
 SMPSPEED_VRAM_OFFSET: Final = 0xF50260
@@ -285,9 +288,27 @@ def read_smpspeed(usb2snes: Usb2Snes) -> Optional[list[str]]:
         return None
 
 
+def read_master_clock(usb2snes: Usb2Snes, logger: Logger) -> None:
+    data = read_until_three_duplicates(
+        usb2snes, SYSINFO_MASTER_CLOCK_OFFSET, SYSINFO_MASTER_CLOCK_SIZE
+    )
+
+    try:
+        m_clock = data.decode("ASCII").strip()
+    except:
+        m_clock = None
+
+    if m_clock:
+        logger.log_string(m_clock)
+    else:
+        logger.log_string("No master clock reading")
+
+
 def read_usb2snes(usb2snes: Usb2Snes, logger: Logger, interval: int) -> None:
     csv_headers(logger)
     logger.log_string(f"Connected to { usb2snes.device_name() }")
+
+    first_read = True
 
     while True:
         start_time = time.monotonic()
@@ -304,7 +325,13 @@ def read_usb2snes(usb2snes: Usb2Snes, logger: Logger, interval: int) -> None:
             # reset timer
             start_time = time.monotonic()
 
-        logger.log_data(data)
+        read_time = datetime.datetime.now()
+
+        if first_read:
+            first_read = False
+            read_master_clock(usb2snes, logger)
+
+        logger.log_data(read_time, data)
         time.sleep(max(start_time - time.monotonic() + interval, 0.5))
 
 
