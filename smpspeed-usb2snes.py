@@ -337,7 +337,11 @@ def read_usb2snes(usb2snes: Usb2Snes, logger: Logger, interval: int) -> None:
 
 def smpspeed_usb2snes(ws_address: str, output_filename: str, interval: int) -> None:
     with contextlib.closing(websocket.WebSocket()) as ws:
-        ws.connect(ws_address, origin="http://localhost")  # type: ignore
+        try:
+            ws.connect(ws_address, origin="http://localhost")  # type: ignore
+        except ConnectionError as e:
+            print(f"Failed to connect to websocket: {e}")
+            exit(1)
 
         usb2snes = Usb2Snes(ws)
 
