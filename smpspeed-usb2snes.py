@@ -241,21 +241,21 @@ SMPSPEED_VRAM_OFFSET: Final = 0xF50260
 SMPSPEED_VRAM_SIZE: Final = 15 * 32
 
 TILEMAP_ROWS: Final = (
-    (0, b"SNES PPU:"),
-    (5, b"Meaning:"),
-    (6, b"Slowest:"),
-    (7, b"Fastest:"),
-    (9, b"S-SMP clock:"),
-    (10, b"relative:"),
-    (11, b"Slowest:"),
-    (12, b"Fastest:"),
-    (14, b"DSP sample rate:"),
+    (0, b"SNES PPU:", "SNES PPU (Hz)"),
+    (5, b"Meaning:", "Meaning (μs)"),
+    (6, b"Slowest:", "Slowest (μs)"),
+    (7, b"Fastest:", "Fastest (μs)"),
+    (9, b"S-SMP clock:", "S-SMP clock (Hz)"),
+    (10, b"relative:", "S-SMP relative (ppm)"),
+    (11, b"Slowest:", "Slowest clock (Hz)"),
+    (12, b"Fastest:", "Fastest clock (Hz)"),
+    (14, b"DSP sample rate:", "DSP sample rate (Hz)"),
 )
 
 
 def csv_headers(logger: Logger) -> None:
-    headers = ['"' + h.decode("ASCII").replace(":", "") + '"' for r, h in TILEMAP_ROWS]
-    logger._print('"Time",' + ", ".join(headers))
+    headers = [f'"{ h }"' for r, n, h in TILEMAP_ROWS]
+    logger._print('"Time", ' + ", ".join(headers))
 
 
 class TilemapReadError(Exception):
@@ -279,7 +279,7 @@ def read_smpspeed(usb2snes: Usb2Snes) -> Optional[list[str]]:
     tilemap = read_until_three_duplicates(usb2snes, SMPSPEED_VRAM_OFFSET, SMPSPEED_VRAM_SIZE)
 
     try:
-        out = [read_tilemap_line(tilemap, row, name) for row, name in TILEMAP_ROWS]
+        out = [read_tilemap_line(tilemap, row, name) for row, name, heading in TILEMAP_ROWS]
         # Fixes "60, ------, ------, ------, -------, ------, -------, -------, -----" line if read during setup
         if "---" in out[1]:
             return None
