@@ -344,6 +344,8 @@ def smpspeed_usb2snes(ws_address: str, output_filename: str, interval: int) -> N
         if not usb2snes.find_and_attach_device():
             raise RuntimeError("Cannot connect to usb2snes")
 
+        print(f"Writing to {output_filename}")
+
         # Using buffering to write to disk more often
         with open(output_filename, "x", buffering=256) as fp:
             logger = Logger(fp)
@@ -374,14 +376,19 @@ def main():
     parser.add_argument(
         "-o",
         "--csv-output",
-        required=True,
+        required=False,
         type=str,
         help="csv output file",
     )
 
     args = parser.parse_args()
 
-    smpspeed_usb2snes(args.address, args.csv_output, args.interval)
+    csv_filename = args.csv_output
+    if csv_filename is None:
+        start_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        csv_filename = f"smpspeed-{start_time}.csv"
+
+    smpspeed_usb2snes(args.address, csv_filename, args.interval)
 
 
 if __name__ == "__main__":
