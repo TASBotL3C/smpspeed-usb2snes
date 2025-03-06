@@ -1,6 +1,6 @@
 # smpspeed-usb2snes
 
-A utility to written by undisbeliever to monitor and log S-SMP clock speeds and related metrics from SNES/Super Famicom hardware using an FXPAK PRO/SD2SNES via USB2SNES when running the smpspeed ROM written by lidnariq.
+A utility to written by undisbeliever to monitor and log S-SMP clock speeds and related metrics from SNES/Super Famicom hardware using an FXPAK PRO/SD2SNES via USB2SNES when running the [smpspeed.sfc ROM created by lidnariq](https://forums.nesdev.org/viewtopic.php?t=24610) - a fixed header version of the [smpspeed.sfc test ROM](https://nextcloud.tas.bot/index.php/s/Y6SoawFNQjqS5ao)is also available. It can be run on a real SNES with an FXPAK PRO/SD2SNES cart.
 
 ## Description
 
