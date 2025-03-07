@@ -242,9 +242,9 @@ SMPSPEED_VRAM_SIZE: Final = 15 * 32
 
 TILEMAP_ROWS: Final = (
     (0, b"SNES PPU:", "SNES PPU (Hz)"),
-    (5, b"Meaning:", "Meaning (μs)"),
-    (6, b"Slowest:", "Slowest (μs)"),
-    (7, b"Fastest:", "Fastest (μs)"),
+    (5, b"Meaning:", "Meaning (us)"),
+    (6, b"Slowest:", "Slowest (us)"),
+    (7, b"Fastest:", "Fastest (us)"),
     (9, b"S-SMP clock:", "S-SMP clock (Hz)"),
     (10, b"relative:", "S-SMP relative (ppm)"),
     (11, b"Slowest:", "Slowest clock (Hz)"),
